@@ -1,24 +1,4 @@
-with col1:
-            st.subheader("🔬 传统影像特征")
-            radiomics_data = {}
-            for feature in radiomics_features:
-                radiomics_data[feature] = st.number_input(
-                    f"{feature}",
-                    value=0.0,
-                    format="%.6f",
-                    key=f"rad_{feature}"
-                )
-        
-        with col2:
-            st.subheader("🤖 深度学习特征")
-            deep_learning_data = {}
-            for feature in deep_learning_features:
-                deep_learning_data[feature] = st.number_input(
-                    f"{feature}",
-                    value=0.0,
-                    format="%.6f",
-                    key=f"deep_{feature}"
-                )import streamlit as st
+import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
@@ -42,6 +22,30 @@ st.markdown("基于传统影像、深度学习和临床特征的集成预测模�
 
 # 侧边栏
 st.sidebar.header("📊 模型设置")
+
+# 特征名称定义
+RADIOMICS_FEATURES = [
+    'wavelet.LLH_glszm_GrayLevelNonUniformity',
+    'wavelet.LHL_glszm_SizeZoneNonUniformityNormalized',
+    'wavelet.HHH_glcm_ClusterShade',
+    'wavelet.HHH_glszm_GrayLevelNonUniformityNormalized',
+    'wavelet.HHH_glszm_SizeZoneNonUniformityNormalized',
+    'wavelet.HHH_glszm_ZoneVariance'
+]
+
+DEEP_LEARNING_FEATURES = [
+    'Feature_508',
+    'Feature_738',
+    'Feature_879'
+]
+
+CLINICAL_FEATURES = [
+    'Age',
+    'ALP',
+    'Monocyte',
+    'Neutrophil',
+    'MLR'
+]
 
 # 模型配置
 @st.cache_resource
@@ -95,29 +99,48 @@ def load_models():
         
         return models, weights, feature_names, performance_metrics, threshold
 
-# 特征名称定义
-RADIOMICS_FEATURES = [
-    'wavelet.LLH_glszm_GrayLevelNonUniformity',
-    'wavelet.LHL_glszm_SizeZoneNonUniformityNormalized',
-    'wavelet.HHH_glcm_ClusterShade',
-    'wavelet.HHH_glszm_GrayLevelNonUniformityNormalized',
-    'wavelet.HHH_glszm_SizeZoneNonUniformityNormalized',
-    'wavelet.HHH_glszm_ZoneVariance'
-]
-
-DEEP_LEARNING_FEATURES = [
-    'Feature_508',
-    'Feature_738',
-    'Feature_879'
-]
-
-CLINICAL_FEATURES = [
-    'Age',
-    'ALP',
-    'Monocyte',
-    'Neutrophil',
-    'MLR'
-]
+def perform_batch_prediction(data, models, weights, feature_names, threshold):
+    """执行批量预测"""
+    try:
+        # 提取特征
+        X_radiomics = data[feature_names['traditional']]
+        X_deep = data[feature_names['deep_learning']]
+        X_clinical = data[feature_names['clinical']]
+        
+        # 获取预测概率
+        proba_trad = models['traditional'].predict_proba(X_radiomics)
+        proba_deep = models['deep_learning'].predict_proba(X_deep)
+        proba_clinical = models['clinical'].predict_proba(X_clinical)
+        
+        # 加权平均
+        weighted_proba = (
+            weights['traditional'] * proba_trad[:, 1] +
+            weights['deep_learning'] * proba_deep[:, 1] +
+            weights['clinical'] * proba_clinical[:, 1]
+        )
+        
+        # 预测结果
+        predictions = (weighted_proba > threshold).astype(int)
+        
+        # 添加预测结果到原数据
+        result_df = data.copy()
+        result_df['prediction'] = predictions
+        result_df['probability'] = weighted_proba
+        result_df['prediction_label'] = result_df['prediction'].map({0: '未生存', 1: '生存'})
+        
+        return result_df
+        
+    except Exception as e:
+        st.error(f"批量预测过程中出现错误: {str(e)}")
+        # 返回示例结果
+        predictions = []
+        for i in range(len(data)):
+            prob = np.random.rand()
+            pred = 1 if prob > threshold else 0
+            predictions.append({'prediction': pred, 'probability': prob})
+        
+        result_df = pd.concat([data, pd.DataFrame(predictions)], axis=1)
+        return result_df
 
 def main():
     # 加载模型
@@ -349,49 +372,6 @@ def main():
         3. 查看"结果可视化"了解模型的决策过程
         4. 支持单个预测和批量预测两种模式
         """)
-
-def perform_batch_prediction(data, models, weights, feature_names, threshold):
-    """执行批量预测"""
-    try:
-        # 提取特征
-        X_radiomics = data[feature_names['traditional']]
-        X_deep = data[feature_names['deep_learning']]
-        X_clinical = data[feature_names['clinical']]
-        
-        # 获取预测概率
-        proba_trad = models['traditional'].predict_proba(X_radiomics)
-        proba_deep = models['deep_learning'].predict_proba(X_deep)
-        proba_clinical = models['clinical'].predict_proba(X_clinical)
-        
-        # 加权平均
-        weighted_proba = (
-            weights['traditional'] * proba_trad[:, 1] +
-            weights['deep_learning'] * proba_deep[:, 1] +
-            weights['clinical'] * proba_clinical[:, 1]
-        )
-        
-        # 预测结果
-        predictions = (weighted_proba > threshold).astype(int)
-        
-        # 添加预测结果到原数据
-        result_df = data.copy()
-        result_df['prediction'] = predictions
-        result_df['probability'] = weighted_proba
-        result_df['prediction_label'] = result_df['prediction'].map({0: '未生存', 1: '生存'})
-        
-        return result_df
-        
-    except Exception as e:
-        st.error(f"批量预测过程中出现错误: {str(e)}")
-        # 返回示例结果
-        predictions = []
-        for i in range(len(data)):
-            prob = np.random.rand()
-            pred = 1 if prob > threshold else 0
-            predictions.append({'prediction': pred, 'probability': prob})
-        
-        result_df = pd.concat([data, pd.DataFrame(predictions)], axis=1)
-        return result_df
 
 if __name__ == "__main__":
     main()
