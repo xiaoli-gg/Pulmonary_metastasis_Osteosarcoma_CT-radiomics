@@ -25,12 +25,12 @@ st.sidebar.header("📊 模型设置")
 
 # 特征名称定义
 RADIOMICS_FEATURES = [
-    'wavelet.LLH_glszm_GrayLevelNonUniformity',
-    'wavelet.LHL_glszm_SizeZoneNonUniformityNormalized',
-    'wavelet.HHH_glcm_ClusterShade',
-    'wavelet.HHH_glszm_GrayLevelNonUniformityNormalized',
-    'wavelet.HHH_glszm_SizeZoneNonUniformityNormalized',
-    'wavelet.HHH_glszm_ZoneVariance'
+    'wavelet-LLH_glszm_GrayLevelNonUniformity',
+    'wavelet-LHL_glszm_SizeZoneNonUniformityNormalized',
+    'wavelet-HHH_glcm_ClusterShade',
+    'wavelet-HHH_glszm_GrayLevelNonUniformityNormalized',
+    'wavelet-HHH_glszm_SizeZoneNonUniformityNormalized',
+    'wavelet-HHH_glszm_ZoneVariance'
 ]
 
 DEEP_LEARNING_FEATURES = [
