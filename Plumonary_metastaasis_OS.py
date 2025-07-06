@@ -9,7 +9,7 @@ warnings.filterwarnings('ignore')
 
 # Page configuration
 st.set_page_config(
-    page_title=""CT-based Osteosarcoma Pulmonary Metastasis Predictor"",
+    page_title="CT-based Osteosarcoma Pulmonary Metastasis Predictor",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded"
