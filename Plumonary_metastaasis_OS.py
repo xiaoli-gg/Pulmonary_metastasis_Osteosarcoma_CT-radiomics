@@ -7,15 +7,15 @@ from plotly.subplots import make_subplots
 import warnings
 warnings.filterwarnings('ignore')
 
-# 页面配置
+# Page configuration
 st.set_page_config(
-    page_title="医学影像生存预测器",
+    page_title="Medical Image Survival Predictor",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# 自定义CSS样式
+# Custom CSS styles
 st.markdown("""
 <style>
     .main-header {
@@ -63,39 +63,39 @@ st.markdown("""
 
 @st.cache_resource
 def load_model():
-    """加载训练好的模型"""
+    """Load the trained model"""
     try:
         model_package = joblib.load('ensemble_model.pkl')
         return model_package
     except FileNotFoundError:
-        st.error("⚠️ 未找到训练好的模型文件 (ensemble_model.pkl)")
-        st.info("请确保模型文件在当前目录下，或先运行训练脚本生成模型")
+        st.error("⚠️ Trained model file not found (ensemble_model.pkl)")
+        st.info("Please ensure the model file is in the current directory, or run the training script first to generate the model")
         return None
 
 def predict_survival(model_package, input_data):
-    """进行生存预测"""
+    """Perform survival prediction"""
     try:
         models = model_package['models']
         weights = model_package['weights']
         feature_names = model_package['feature_names']
         threshold = model_package['threshold']
         
-        # 准备各类特征数据
+        # Prepare feature data for each category
         X_trad = input_data[feature_names['traditional']]
         X_deep = input_data[feature_names['deep_learning']]
         X_clinical = input_data[feature_names['clinical']]
         
-        # 获取各模型预测概率
+        # Get prediction probabilities from each model
         proba_trad = models['traditional'].predict_proba(X_trad.values.reshape(1, -1))[0, 1]
         proba_deep = models['deep_learning'].predict_proba(X_deep.values.reshape(1, -1))[0, 1]
         proba_clinical = models['clinical'].predict_proba(X_clinical.values.reshape(1, -1))[0, 1]
         
-        # 加权融合
+        # Weighted fusion
         weighted_proba = (weights['traditional'] * proba_trad + 
                          weights['deep_learning'] * proba_deep + 
                          weights['clinical'] * proba_clinical)
         
-        # 最终预测
+        # Final prediction
         prediction = 1 if weighted_proba > threshold else 0
         
         return {
@@ -110,39 +110,39 @@ def predict_survival(model_package, input_data):
         }
         
     except Exception as e:
-        st.error(f"预测过程中出现错误: {str(e)}")
+        st.error(f"Error occurred during prediction: {str(e)}")
         return None
 
 def main():
-    # 主标题
-    st.markdown('<h1 class="main-header">🏥 医学影像生存预测器</h1>', unsafe_allow_html=True)
+    # Main title
+    st.markdown('<h1 class="main-header">🏥 Medical Image Survival Predictor</h1>', unsafe_allow_html=True)
     
-    # 加载模型
+    # Load model
     model_package = load_model()
     
     if model_package is None:
         st.stop()
     
-    # 显示模型信息
-    with st.expander("📊 模型信息", expanded=False):
+    # Display model information
+    with st.expander("📊 Model Information", expanded=False):
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.markdown("### 🔬 传统影像特征")
+            st.markdown("### 🔬 Traditional Imaging Features")
             for feature in model_package['feature_names']['traditional']:
                 st.write(f"• {feature}")
         
         with col2:
-            st.markdown("### 🤖 深度学习特征")
+            st.markdown("### 🤖 Deep Learning Features")
             for feature in model_package['feature_names']['deep_learning']:
                 st.write(f"• {feature}")
         
         with col3:
-            st.markdown("### 👨‍⚕️临床特征")
+            st.markdown("### 👨‍⚕️ Clinical Features")
             for feature in model_package['feature_names']['clinical']:
                 st.write(f"• {feature}")
         
-        st.markdown("### 📈 模型性能指标")
+        st.markdown("### 📈 Model Performance Metrics")
         metrics = model_package['performance_metrics']
         col1, col2, col3, col4, col5 = st.columns(5)
         
@@ -151,40 +151,39 @@ def main():
         with col2:
             st.metric("F1 Score", f"{metrics['F1']:.3f}")
         with col3:
-            st.metric("准确率", f"{metrics['Accuracy']:.3f}")
+            st.metric("Accuracy", f"{metrics['Accuracy']:.3f}")
         with col4:
-            st.metric("敏感性", f"{metrics['Sensitivity']:.3f}")
+            st.metric("Sensitivity", f"{metrics['Sensitivity']:.3f}")
         with col5:
-            st.metric("特异性", f"{metrics['Specificity']:.3f}")
+            st.metric("Specificity", f"{metrics['Specificity']:.3f}")
     
-    # 侧边栏 - 数据输入
-    st.sidebar.markdown("## 📝 患者数据输入")
+    # Sidebar - Data input
+    st.sidebar.markdown("## 📝 Patient Data Input")
     
-    # 临床特征输入
-    st.sidebar.markdown("### 👨‍⚕️ 临床特征")
-    age = st.sidebar.number_input("年龄", min_value=0, max_value=120, value=65, step=1)
-    alp = st.sidebar.number_input("ALP (碱性磷酸酶)", min_value=0.0, value=100.0, step=0.1)
-    monocyte = st.sidebar.number_input("单核细胞", min_value=0.0, value=0.5, step=0.01)
-    neutrophil = st.sidebar.number_input("中性粒细胞", min_value=0.0, value=5.0, step=0.1)
-    mlr = st.sidebar.number_input("MLR (单核细胞淋巴细胞比值)", min_value=0.0, value=0.3, step=0.01)
+    # Clinical features input
+    st.sidebar.markdown("### 👨‍⚕️ Clinical Features")
+    age = st.sidebar.number_input("Age", min_value=0, max_value=120, value=65, step=1)
+    alp = st.sidebar.number_input("ALP", min_value=0.0, value=100.0, step=0.1)
+    monocyte = st.sidebar.number_input("Monocyte", min_value=0.0, value=0.5, step=0.01)
+    neutrophil = st.sidebar.number_input("Neutrophil", min_value=0.0, value=5.0, step=0.1)
+    mlr = st.sidebar.number_input("MLR", min_value=0.0, value=0.3, step=0.01)
     
-    # 传统影像特征输入
-    st.sidebar.markdown("### 🔬 传统影像特征")
+    # Traditional imaging features input
+    st.sidebar.markdown("### 🔬 Traditional Imaging Features")
     rad_features = {}
     feature_names_trad = model_package['feature_names']['traditional']
     
     for i, feature in enumerate(feature_names_trad):
-        display_name = feature.split('_')[-1] if '_' in feature else feature
         rad_features[feature] = st.sidebar.number_input(
-            f"{display_name}", 
+            f"{feature}", 
             value=0.0, 
             step=0.001, 
             format="%.3f",
             key=f"trad_{i}"
         )
     
-    # 深度学习特征输入
-    st.sidebar.markdown("### 🤖 深度学习特征")
+    # Deep learning features input
+    st.sidebar.markdown("### 🤖 Deep Learning Features")
     deep_features = {}
     feature_names_deep = model_package['feature_names']['deep_learning']
     
@@ -197,9 +196,9 @@ def main():
             key=f"deep_{i}"
         )
     
-    # 预测按钮
-    if st.sidebar.button("🔍 开始预测", type="primary"):
-        # 准备输入数据
+    # Prediction button
+    if st.sidebar.button("🔍 Start Prediction", type="primary"):
+        # Prepare input data
         input_data = pd.DataFrame({
             'Age': [age],
             'ALP': [alp],
@@ -210,32 +209,32 @@ def main():
             **{k: [v] for k, v in deep_features.items()}
         })
         
-        # 进行预测
+        # Perform prediction
         result = predict_survival(model_package, input_data)
         
         if result is not None:
-            # 显示预测结果
-            st.markdown('<h2 class="section-header">📊 预测结果</h2>', unsafe_allow_html=True)
+            # Display prediction results
+            st.markdown('<h2 class="section-header">📊 Prediction Results</h2>', unsafe_allow_html=True)
             
-            # 主要预测结果
-            prediction_text = "高风险" if result['prediction'] == 1 else "低风险"
+            # Main prediction result
+            prediction_text = "High Risk" if result['prediction'] == 1 else "Low Risk"
             risk_class = "high-risk" if result['prediction'] == 1 else "low-risk"
             
             st.markdown(f'''
             <div class="prediction-result {risk_class}">
-                🎯 预测结果: {prediction_text}<br>
-                📊 风险概率: {result['probability']:.1%}
+                🎯 Prediction Result: {prediction_text}<br>
+                📊 Risk Probability: {result['probability']:.1%}
             </div>
             ''', unsafe_allow_html=True)
             
-            # 详细结果展示
+            # Detailed results display
             col1, col2 = st.columns([1, 1])
             
             with col1:
-                st.markdown("### 📈 各模型贡献度")
+                st.markdown("### 📈 Model Contributions")
                 
-                # 创建贡献度图表
-                labels = ['传统影像', '深度学习', '临床特征']
+                # Create contribution chart
+                labels = ['Traditional Imaging', 'Deep Learning', 'Clinical Features']
                 probabilities = [
                     result['individual_probabilities']['traditional'],
                     result['individual_probabilities']['deep_learning'],
@@ -249,83 +248,83 @@ def main():
                 
                 fig = make_subplots(
                     rows=1, cols=2,
-                    subplot_titles=('各模型预测概率', '模型权重'),
+                    subplot_titles=('Model Prediction Probabilities', 'Model Weights'),
                     specs=[[{"type": "bar"}, {"type": "pie"}]]
                 )
                 
-                # 概率条形图
+                # Probability bar chart
                 fig.add_trace(
                     go.Bar(x=labels, y=probabilities, 
                           marker_color=['#1f77b4', '#ff7f0e', '#2ca02c'],
-                          name='预测概率'),
+                          name='Prediction Probability'),
                     row=1, col=1
                 )
                 
-                # 权重饼图
+                # Weight pie chart
                 fig.add_trace(
                     go.Pie(labels=labels, values=weights,
                           marker_colors=['#1f77b4', '#ff7f0e', '#2ca02c'],
-                          name='模型权重'),
+                          name='Model Weights'),
                     row=1, col=2
                 )
                 
                 fig.update_layout(
                     height=400,
                     showlegend=False,
-                    title_text="模型分析"
+                    title_text="Model Analysis"
                 )
                 
                 st.plotly_chart(fig, use_container_width=True)
             
             with col2:
-                st.markdown("### 📋 详细数据")
+                st.markdown("### 📋 Detailed Data")
                 
-                # 输入数据摘要
-                st.markdown("#### 临床特征")
+                # Input data summary
+                st.markdown("#### Clinical Features")
                 clinical_data = {
-                    "年龄": f"{age} 岁",
+                    "Age": f"{age} years",
                     "ALP": f"{alp:.1f}",
-                    "单核细胞": f"{monocyte:.2f}",
-                    "中性粒细胞": f"{neutrophil:.1f}",
+                    "Monocyte": f"{monocyte:.2f}",
+                    "Neutrophil": f"{neutrophil:.1f}",
                     "MLR": f"{mlr:.2f}"
                 }
                 
                 for key, value in clinical_data.items():
                     st.write(f"• **{key}**: {value}")
                 
-                st.markdown("#### 预测详情")
-                st.write(f"• **最终概率**: {result['probability']:.3f}")
-                st.write(f"• **预测阈值**: {model_package['threshold']}")
-                st.write(f"• **传统影像贡献**: {result['individual_probabilities']['traditional']:.3f}")
-                st.write(f"• **深度学习贡献**: {result['individual_probabilities']['deep_learning']:.3f}")
-                st.write(f"• **临床特征贡献**: {result['individual_probabilities']['clinical']:.3f}")
+                st.markdown("#### Prediction Details")
+                st.write(f"• **Final Probability**: {result['probability']:.3f}")
+                st.write(f"• **Prediction Threshold**: {model_package['threshold']}")
+                st.write(f"• **Traditional Imaging Contribution**: {result['individual_probabilities']['traditional']:.3f}")
+                st.write(f"• **Deep Learning Contribution**: {result['individual_probabilities']['deep_learning']:.3f}")
+                st.write(f"• **Clinical Features Contribution**: {result['individual_probabilities']['clinical']:.3f}")
             
-            # 风险解释
-            st.markdown('<h3 class="section-header">💡 结果解释</h3>', unsafe_allow_html=True)
+            # Risk interpretation
+            st.markdown('<h3 class="section-header">💡 Result Interpretation</h3>', unsafe_allow_html=True)
             
             if result['prediction'] == 1:
                 st.warning("""
-                **高风险患者建议：**
-                - 🏥 建议加强随访监测
-                - 📅 缩短复查间隔
-                - 💊 考虑积极的治疗方案
-                - 👨‍⚕️ 与主治医师详细讨论治疗策略
+                **High Risk Patient Recommendations:**
+                - 🏥 Recommend enhanced follow-up monitoring
+                - 📅 Shorten re-examination intervals
+                - 💊 Consider aggressive treatment plans
+                - 👨‍⚕️ Discuss treatment strategies in detail with attending physician
                 """)
             else:
                 st.success("""
-                **低风险患者建议：**
-                - ✅ 维持常规随访计划
-                - 🏃‍♂️ 保持健康的生活方式
-                - 📊 定期复查相关指标
-                - 😊 保持积极的心态
+                **Low Risk Patient Recommendations:**
+                - ✅ Maintain routine follow-up schedule
+                - 🏃‍♂️ Maintain healthy lifestyle
+                - 📊 Regular monitoring of relevant indicators
+                - 😊 Maintain positive attitude
                 """)
             
-            # 免责声明
+            # Disclaimer
             st.markdown("---")
             st.markdown("""
-            **⚠️ 重要声明：**
-            此预测结果仅供医疗参考，不能替代专业医疗诊断。
-            请务必咨询专业医师，结合临床实际情况做出医疗决策。
+            **⚠️ Important Disclaimer:**
+            This prediction result is for medical reference only and cannot replace professional medical diagnosis.
+            Please consult with professional physicians and make medical decisions based on actual clinical conditions.
             """)
 
 if __name__ == "__main__":
