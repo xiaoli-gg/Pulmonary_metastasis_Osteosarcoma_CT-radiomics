@@ -115,7 +115,7 @@ def predict_survival(model_package, input_data):
 
 def main():
     # Main title
-    st.markdown('<h1 class="main-header">🏥 Medical Image Survival Predictor</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🏥 CT-based Osteosarcoma Pulmonary Metastasis Predictor</h1>', unsafe_allow_html=True)
     
     # Load model
     model_package = load_model()
